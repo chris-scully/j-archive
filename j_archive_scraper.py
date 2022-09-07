@@ -34,12 +34,12 @@ def parse_response(clue_html):
 
     incorrect_responders_soup = response_soup.select('.wrong')
     if incorrect_responders_soup:
-        incorrect_responders_list = []
+        incorrect_responders = []
         for incorrect_responder in incorrect_responders_soup:
             incorrect_responder = incorrect_responder.get_text(' ', strip=True)
             if incorrect_responder != 'Triple Stumper':
-                incorrect_responders_list.append(incorrect_responder)
-        incorrect_responders = ', '.join(incorrect_responders_list)
+                incorrect_responders.append(incorrect_responder)
+        incorrect_responders = incorrect_responders if len(incorrect_responders)>0 else None
     else:
         incorrect_responders = None
 
@@ -111,6 +111,8 @@ def parse_fj(page_soup):
     fj_board = page_soup.select_one('.final_round')
     category = fj_board.select_one('.category_name').text
 
+    answer = fj_board.select_one('.clue_text').text
+
     response_html = fj_board.find('div', {'onmouseover': True})['onmouseover']
     response_soup = BeautifulSoup(response_html, HTML_PARSER)
     correct_responders = response_soup.select('.right')
@@ -131,12 +133,15 @@ def parse_fj(page_soup):
             rows.append(row)
 
     df = pd.DataFrame(rows, columns=['responder', 'response', 'value'])
-    df['is_correct'] = df['responder'].isin(correct_responders)
+    df['answer'] = answer
     df['category'] = category
     df['correct_response'] = correct_response
     df['round_num'] = 3
     df['correct_responder'] = None
     df['incorrect_responders'] = None
+    df['is_daily_double'] = False
+    df['order_number'] = 1
+    df['is_correct'] = df['responder'].isin(correct_responders)
     df.loc[df['is_correct'], 'correct_responder'] = df['responder']
     df.loc[~df['is_correct'], 'incorrect_responders'] = df['responder']
     df.drop(columns=['responder', 'response'], inplace=True)
@@ -155,6 +160,7 @@ def scrape_episode(scraper, episode_num):
 
     episode_df = pd.concat([rounds_df, final_jep_df], ignore_index=True)
     episode_df['episode'] = episode_num
+    episode_df = episode_df.explode(column='incorrect_responders', ignore_index=True)
     episode_df.sort_values(by=['round_num', 'order_number'], inplace=True)
 
     return episode_df
@@ -167,7 +173,7 @@ if __name__ == '__main__':
     CSV_OUTPUT_DIR = 'data'
 
     j_scraper = Scraper(robots_txt_url=ROBOTS_TXT_URL)
-    for i in range(7417, 7419):
+    for i in range(4000, 4001):
         print(f'Scraping/parsing episode #{i}')
         episode_csv = os.path.join(CSV_OUTPUT_DIR, 'episode', f'show_{i}.csv')
         episode_df = scrape_episode(j_scraper, episode_num=i)
