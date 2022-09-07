@@ -85,7 +85,7 @@ def parse_clues(board_html):
         else:
             keys = ['answer', 'order_number', 'value', 'is_daily_double',
                     'correct_response', 'correct_responder', 'incorrect_responders', 
-                    'is_correct']
+                    'was_correct']
             clue_dict = {k: np.nan for k in keys}
 
         clue_dicts.append(clue_dict)
