@@ -76,7 +76,7 @@ def parse_value(clue_html):
     value = value.replace('$', '').replace(',', '')
 
     return {'value': value,
-            'is_daily_double': is_dd}
+            'was_daily_double': is_dd}
 
 
 def parse_clues(board_html):
@@ -103,7 +103,7 @@ def parse_clues(board_html):
             clue_dict.update(response_dict)
         else:
             keys = ['clue_id', 'clue_location', 'answer', 'order_number', 
-                    'value', 'is_daily_double', 'correct_response', 
+                    'value', 'was_daily_double', 'correct_response', 
                     'was_triple_stumper']
             clue_dict = {k: np.nan for k in keys}
 
@@ -159,7 +159,7 @@ def parse_fj(page_soup):
     df['category'] = category
     df['correct_response'] = correct_response
     df['round_num'] = 3
-    df['is_daily_double'] = False
+    df['was_daily_double'] = False
     df['order_number'] = 1
     df['was_correct'] = df['name'].isin(correct_responders)
     df['was_triple_stumper'] = True if len(correct_responders) == 0 else False
@@ -181,7 +181,7 @@ def scrape_episode(scraper, episode_num):
         data = rounds,
         record_path = 'responders',
         meta=['clue_id', 'clue_location', 'answer', 'order_number', 'value',
-              'is_daily_double', 'correct_response', 'category', 'round_num', 
+              'was_daily_double', 'correct_response', 'category', 'round_num', 
               'was_triple_stumper']
     )
 
@@ -192,9 +192,9 @@ def scrape_episode(scraper, episode_num):
     episode_df['episode'] = episode_num
 
     col_order = ['episode', 'clue_id', 'clue_location', 'round_num', 'value',
-                'order_number', 'category','answer', 'was_revealed',
-                'is_daily_double', 'correct_response', 'name', 'was_correct',
-                'was_triple_stumper']
+                'order_number', 'category','answer', 'correct_response', 'name', 
+                'was_revealed', 'was_correct', 'was_triple_stumper', 
+                'was_daily_double']
     episode_df = episode_df[col_order]
     episode_df.sort_values(by=['round_num', 'order_number'], inplace=True)
 
