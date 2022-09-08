@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
+import json
 
 HTML_PARSER = 'html.parser'
 ROBOTS_TXT_URL = 'http://www.j-archive.com/robots.txt'
@@ -24,29 +25,40 @@ def parse_response(clue_html):
     correct_response_soup = response_soup.select_one('.correct_response')
     correct_response = correct_response_soup.text
 
+    response = {
+        'correct_response': correct_response,
+        'responders': [],
+        'triple_stumper': False
+    }
+
     correct_responder_soup = response_soup.select_one('.right')
     if correct_responder_soup:
-        correct_responder = correct_responder_soup.text
-        was_correct = True
-    else: 
-        correct_responder = None
-        was_correct = False
+        correct_response_dict = {
+            'name': correct_responder_soup.text, 
+            'was_correct': True
+        }
+        response['responders'].append(correct_response_dict)
 
     incorrect_responders_soup = response_soup.select('.wrong')
     if incorrect_responders_soup:
-        incorrect_responders = []
         for incorrect_responder in incorrect_responders_soup:
-            incorrect_responder = incorrect_responder.get_text(' ', strip=True)
-            if incorrect_responder != 'Triple Stumper':
-                incorrect_responders.append(incorrect_responder)
-        incorrect_responders = incorrect_responders if len(incorrect_responders)>0 else None
-    else:
-        incorrect_responders = None
+            if incorrect_responder.text == 'Triple Stumper':
+                response['triple_stumper'] = True
+            else:
+                incorrect_response_dict = {
+                    'name': incorrect_responder.text,
+                    'was_correct': False
+                }
+                response['responders'].append(incorrect_response_dict)
+        
+    if not response['responders']:
+        no_response_dict = {
+                    'name': None,
+                    'was_correct': None
+        }
+        response['responders'].append(no_response_dict)
 
-    return {'correct_response': correct_response,
-            'correct_responder': correct_responder,
-            'incorrect_responders': incorrect_responders,
-            'was_correct': was_correct}
+    return response
 
 
 def parse_value(clue_html):
@@ -84,8 +96,7 @@ def parse_clues(board_html):
             clue_dict.update(response_dict)
         else:
             keys = ['answer', 'order_number', 'value', 'is_daily_double',
-                    'correct_response', 'correct_responder', 'incorrect_responders', 
-                    'was_correct']
+                    'correct_response', 'triple_stumper']
             clue_dict = {k: np.nan for k in keys}
 
         clue_dicts.append(clue_dict)
@@ -132,19 +143,15 @@ def parse_fj(page_soup):
             row += contents
             rows.append(row)
 
-    df = pd.DataFrame(rows, columns=['responder', 'response', 'value'])
+    df = pd.DataFrame(rows, columns=['name', 'response', 'value'])
     df['answer'] = answer
     df['category'] = category
     df['correct_response'] = correct_response
     df['round_num'] = 3
-    df['correct_responder'] = None
-    df['incorrect_responders'] = None
     df['is_daily_double'] = False
     df['order_number'] = 1
-    df['was_correct'] = df['responder'].isin(correct_responders)
-    df.loc[df['was_correct'], 'correct_responder'] = df['responder']
-    df.loc[~df['was_correct'], 'incorrect_responders'] = df['responder']
-    df.drop(columns=['responder', 'response'], inplace=True)
+    df['was_correct'] = df['name'].isin(correct_responders)
+    df.drop(columns=['response'], inplace=True)
 
     return df
 
@@ -156,12 +163,25 @@ def scrape_episode(scraper, episode_num):
     soup = BeautifulSoup(page_html, features=HTML_PARSER)
 
     rounds_df = parse_rounds(soup)
+    rounds = rounds_df.to_json(orient='records')
+    rounds = json.loads(rounds)
+    rounds_df = pd.json_normalize(
+        data = rounds,
+        record_path = 'responders',
+        meta=['answer', 'order_number', 'value', 'is_daily_double', 
+              'correct_response', 'category', 'round_num']
+    )
+
     final_jep_df = parse_fj(soup)
 
     episode_df = pd.concat([rounds_df, final_jep_df], ignore_index=True)
     episode_df['was_revealed'] = np.where(episode_df['answer'].str.len()>0, True, False)
     episode_df['episode'] = episode_num
-    episode_df = episode_df.explode(column='incorrect_responders', ignore_index=True)
+
+    col_order = ['episode', 'round_num', 'value', 'order_number', 'category',
+                'answer', 'was_revealed', 'is_daily_double', 'correct_response',
+                'name','was_correct']
+    episode_df = episode_df[col_order]
     episode_df.sort_values(by=['round_num', 'order_number'], inplace=True)
 
     return episode_df
