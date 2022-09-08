@@ -88,16 +88,23 @@ def parse_clues(board_html):
             value_dict = parse_value(clue_html)
             response_dict = parse_response(clue_html)
 
+            clue_id = clue_html.a['href'].split('=')[-1]
+            clue_location = clue_html.find("td", {"class": "clue_unstuck"})['id'] \
+                                      .replace('clue_', '') \
+                                      .replace('_stuck', '')
             answer = clue_html.select_one('.clue_text').text
             order_number = clue_html.select_one('.clue_order_number').text
 
-            clue_dict = {'answer': answer,
+            clue_dict = {'clue_id': clue_id,
+                         'clue_location': clue_location,
+                         'answer': answer,
                          'order_number': order_number}
             clue_dict.update(value_dict)
             clue_dict.update(response_dict)
         else:
-            keys = ['answer', 'order_number', 'value', 'is_daily_double',
-                    'correct_response', 'was_triple_stumper']
+            keys = ['clue_id', 'clue_location', 'answer', 'order_number', 
+                    'value', 'is_daily_double', 'correct_response', 
+                    'was_triple_stumper']
             clue_dict = {k: np.nan for k in keys}
 
         clue_dicts.append(clue_dict)
@@ -171,8 +178,9 @@ def scrape_episode(scraper, episode_num):
     rounds_df = pd.json_normalize(
         data = rounds,
         record_path = 'responders',
-        meta=['answer', 'order_number', 'value', 'is_daily_double', 
-              'correct_response', 'category', 'round_num', 'was_triple_stumper']
+        meta=['clue_id', 'clue_location', 'answer', 'order_number', 'value',
+              'is_daily_double', 'correct_response', 'category', 'round_num', 
+              'was_triple_stumper']
     )
 
     final_jep_df = parse_fj(soup)
@@ -181,9 +189,10 @@ def scrape_episode(scraper, episode_num):
     episode_df['was_revealed'] = np.where(episode_df['answer'].str.len()>0, True, False)
     episode_df['episode'] = episode_num
 
-    col_order = ['episode', 'round_num', 'value', 'order_number', 'category',
-                'answer', 'was_revealed', 'is_daily_double', 'correct_response',
-                'name','was_correct', 'was_triple_stumper']
+    col_order = ['episode', 'clue_id', 'clue_location', 'round_num', 'value',
+                'order_number', 'category','answer', 'was_revealed',
+                'is_daily_double', 'correct_response', 'name', 'was_correct',
+                'was_triple_stumper']
     episode_df = episode_df[col_order]
     episode_df.sort_values(by=['round_num', 'order_number'], inplace=True)
 
