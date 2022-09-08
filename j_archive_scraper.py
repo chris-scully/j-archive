@@ -73,7 +73,7 @@ def parse_value(clue_html):
         value = value.text
         is_dd = False
 
-    value = value.replace('$', '')
+    value = value.replace('$', '').replace(',', '')
 
     return {'value': value,
             'is_daily_double': is_dd}
@@ -145,6 +145,7 @@ def parse_fj(page_soup):
             rows.append(row)
 
     df = pd.DataFrame(rows, columns=['name', 'response', 'value'])
+    df['value'] = df['value'].str.replace('$','', regex=False).str.replace(',','', regex=False)
     df['answer'] = answer
     df['category'] = category
     df['correct_response'] = correct_response
