@@ -28,7 +28,7 @@ def parse_response(clue_html):
     response = {
         'correct_response': correct_response,
         'responders': [],
-        'triple_stumper': False
+        'was_triple_stumper': False
     }
 
     correct_responder_soup = response_soup.select_one('.right')
@@ -43,7 +43,7 @@ def parse_response(clue_html):
     if incorrect_responders_soup:
         for incorrect_responder in incorrect_responders_soup:
             if incorrect_responder.text == 'Triple Stumper':
-                response['triple_stumper'] = True
+                response['was_triple_stumper'] = True
             else:
                 incorrect_response_dict = {
                     'name': incorrect_responder.text,
@@ -57,6 +57,7 @@ def parse_response(clue_html):
                     'was_correct': None
         }
         response['responders'].append(no_response_dict)
+        response['was_triple_stumper'] = True
 
     return response
 
@@ -96,7 +97,7 @@ def parse_clues(board_html):
             clue_dict.update(response_dict)
         else:
             keys = ['answer', 'order_number', 'value', 'is_daily_double',
-                    'correct_response', 'triple_stumper']
+                    'correct_response', 'was_triple_stumper']
             clue_dict = {k: np.nan for k in keys}
 
         clue_dicts.append(clue_dict)
@@ -151,6 +152,7 @@ def parse_fj(page_soup):
     df['is_daily_double'] = False
     df['order_number'] = 1
     df['was_correct'] = df['name'].isin(correct_responders)
+    df['was_triple_stumper'] = True if len(correct_responders) == 0 else False
     df.drop(columns=['response'], inplace=True)
 
     return df
@@ -169,7 +171,7 @@ def scrape_episode(scraper, episode_num):
         data = rounds,
         record_path = 'responders',
         meta=['answer', 'order_number', 'value', 'is_daily_double', 
-              'correct_response', 'category', 'round_num']
+              'correct_response', 'category', 'round_num', 'was_triple_stumper']
     )
 
     final_jep_df = parse_fj(soup)
@@ -180,7 +182,7 @@ def scrape_episode(scraper, episode_num):
 
     col_order = ['episode', 'round_num', 'value', 'order_number', 'category',
                 'answer', 'was_revealed', 'is_daily_double', 'correct_response',
-                'name','was_correct']
+                'name','was_correct', 'was_triple_stumper']
     episode_df = episode_df[col_order]
     episode_df.sort_values(by=['round_num', 'order_number'], inplace=True)
 
