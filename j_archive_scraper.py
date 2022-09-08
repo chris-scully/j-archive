@@ -153,6 +153,8 @@ def parse_fj(page_soup):
 
     df = pd.DataFrame(rows, columns=['name', 'response', 'value'])
     df['value'] = df['value'].str.replace('$','', regex=False).str.replace(',','', regex=False)
+    df['clue_id'] = None
+    df['clue_location'] = 'FJ'
     df['answer'] = answer
     df['category'] = category
     df['correct_response'] = correct_response
