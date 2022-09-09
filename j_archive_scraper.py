@@ -67,16 +67,20 @@ def parse_value(clue_html):
     dd_value = clue_html.select_one('.clue_value_daily_double')
 
     if dd_value:
-        value = dd_value.text.replace('DD: ', '')
+        value = None
         is_dd = True
+        daily_double_wager = dd_value.text \
+                                     .replace('DD: ', '') \
+                                     .replace('$', '')    \
+                                     .replace(',', '')
     else:
-        value = value.text
+        value = value.text.replace('$', '').replace(',', '')
         is_dd = False
-
-    value = value.replace('$', '').replace(',', '')
+        daily_double_wager = None
 
     return {'value': value,
-            'was_daily_double': is_dd}
+            'was_daily_double': is_dd,
+            'daily_double_wager': daily_double_wager}
 
 
 def parse_clues(board_html):
@@ -98,19 +102,29 @@ def parse_clues(board_html):
             clue_dict = {'clue_id': clue_id,
                          'clue_location': clue_location,
                          'answer': answer,
-                         'order_number': order_number}
+                         'order_number': order_number,
+                         'was_revealed': True}
             clue_dict.update(value_dict)
             clue_dict.update(response_dict)
         else:
             keys = ['clue_id', 'clue_location', 'answer', 'order_number', 
-                    'value', 'was_daily_double', 'correct_response', 
-                    'was_triple_stumper']
+                    'value', 'was_daily_double', 'daily_double_wager',
+                    'correct_response', 'responders', 'was_triple_stumper']
             clue_dict = {k: np.nan for k in keys}
+            clue_dict['responders'] = [{'name': None, 'was_correct': None}]
+            clue_dict['was_revealed'] = False
 
         clue_dicts.append(clue_dict)
 
     return pd.DataFrame(clue_dicts)
 
+def infer_daily_double_value(df):
+    # TODO: update for pre-doubled money
+    df['value'] = np.where(df['was_daily_double'], 
+                           df['round_num'] * df['clue_location'].str[-1].astype(int) * 200, 
+                           df['value']
+                          )
+    return df
 
 def parse_rounds(page_soup):
     boards = page_soup.select('.round')
@@ -121,6 +135,7 @@ def parse_rounds(page_soup):
         clue_df = parse_clues(board)
         clue_df['category'] = categories * 5
         clue_df['round_num'] = round_num + 1
+        # clue_df = infer_daily_double_value(clue_df)
         clue_dfs.append(clue_df)
 
     return pd.concat(clue_dfs)
@@ -163,6 +178,7 @@ def parse_fj(page_soup):
     df['order_number'] = 1
     df['was_correct'] = df['name'].isin(correct_responders)
     df['was_triple_stumper'] = True if len(correct_responders) == 0 else False
+    df['daily_double_wager'] = None
     df.drop(columns=['response'], inplace=True)
 
     return df
@@ -182,19 +198,18 @@ def scrape_episode(scraper, episode_num):
         record_path = 'responders',
         meta=['clue_id', 'clue_location', 'answer', 'order_number', 'value',
               'was_daily_double', 'correct_response', 'category', 'round_num', 
-              'was_triple_stumper']
+              'was_triple_stumper', 'daily_double_wager', 'was_revealed']
     )
 
     final_jep_df = parse_fj(soup)
-
     episode_df = pd.concat([rounds_df, final_jep_df], ignore_index=True)
-    episode_df['was_revealed'] = np.where(episode_df['answer'].str.len()>0, True, False)
+
     episode_df['episode'] = episode_num
 
     col_order = ['episode', 'clue_id', 'clue_location', 'round_num', 'value',
                 'order_number', 'category','answer', 'correct_response', 'name', 
-                'was_revealed', 'was_correct', 'was_triple_stumper', 
-                'was_daily_double']
+                'was_correct', 'was_revealed', 'was_triple_stumper', 
+                'was_daily_double', 'daily_double_wager']
     episode_df = episode_df[col_order]
     episode_df.sort_values(by=['round_num', 'order_number'], inplace=True)
 
