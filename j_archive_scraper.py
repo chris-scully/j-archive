@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 import json
-from datetime import datetime
+from datetime import datetime, date
 
 HTML_PARSER = 'html.parser'
 ROBOTS_TXT_URL = 'http://www.j-archive.com/robots.txt'
@@ -141,14 +141,16 @@ def infer_clue_location(df):
                                   )
     return df
 
-def infer_missing_value(df):
-    df['value'] = np.where(df['value'].isnull(), 
-                           df['round_num'] * df['clue_location'].str[-1].astype(int) * 200, 
-                           df['value']
-                          )
+def infer_missing_value(df, dt):
+    money_multiple = 200 if dt >= date(2001, 11, 26) else 100
+    df['value'].fillna(value = df['round_num'] \
+                                * df['clue_location'].str[-1].astype(int) \
+                                * money_multiple, 
+                       inplace=True
+                      )
     return df
 
-def parse_rounds(page_soup):
+def parse_rounds(page_soup, episode_date):
     boards = page_soup.select('.round')
 
     clue_dfs = []
@@ -158,7 +160,7 @@ def parse_rounds(page_soup):
         clue_df['category'] = categories * 5
         clue_df['round_num'] = round_num + 1
         clue_df = infer_clue_location(clue_df)
-        clue_df = infer_missing_value(clue_df)
+        clue_df = infer_missing_value(clue_df, episode_date)
         clue_dfs.append(clue_df)
 
     return pd.concat(clue_dfs)
@@ -214,7 +216,11 @@ def scrape_episode(scraper, episode_num):
 
     soup = BeautifulSoup(page_html, features=HTML_PARSER)
 
-    rounds_df = parse_rounds(soup)
+    meta = parse_metadata(soup)
+    episode_date = meta['date']
+    show_num = meta['show_num']
+
+    rounds_df = parse_rounds(soup, episode_date)
     rounds = rounds_df.to_json(orient='records')
     rounds = json.loads(rounds)
     rounds_df = pd.json_normalize(
@@ -226,12 +232,11 @@ def scrape_episode(scraper, episode_num):
     )
 
     final_jep_df = parse_fj(soup)
-    meta = parse_metadata(soup)
     episode_df = pd.concat([rounds_df, final_jep_df], ignore_index=True)
 
     episode_df['game_id'] = episode_num
-    episode_df['date'] = meta['date']
-    episode_df['show_num'] = meta['show_num']
+    episode_df['date'] = episode_date
+    episode_df['show_num'] = show_num
 
     col_order = ['show_num', 'game_id', 'date', 'clue_id', 'clue_location', 'round_num', 'value',
                 'order_num', 'category','answer', 'correct_response', 'name', 
