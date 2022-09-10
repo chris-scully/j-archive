@@ -2,10 +2,22 @@ import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 import json
+from datetime import datetime
 
 HTML_PARSER = 'html.parser'
 ROBOTS_TXT_URL = 'http://www.j-archive.com/robots.txt'
 EPISODE_BASE_URL = 'http://www.j-archive.com/showgame.php?game_id='
+
+def parse_metadata(page_html):
+    game_title = page_html.select_one('#game_title').text
+
+    long_date = game_title[game_title.find(',')+2:]
+    episode_date = datetime.strptime(long_date, '%B %d, %Y').date()
+
+    show_num = game_title.split('#')[1].split(' ')[0]
+
+    return {'date': episode_date,
+            'show_num': show_num}
 
 
 def category_name(board_html):
@@ -94,16 +106,16 @@ def parse_clues(board_html):
 
             clue_id = clue_html.a['href'].split('=')[-1]
             answer = clue_html.select_one('.clue_text').text
-            order_number = clue_html.select_one('.clue_order_number').text
+            order_num = clue_html.select_one('.clue_order_number').text
 
             clue_dict = {'clue_id': clue_id,
                          'answer': answer,
-                         'order_number': order_number,
+                         'order_num': order_num,
                          'was_revealed': True}
             clue_dict.update(value_dict)
             clue_dict.update(response_dict)
         else:
-            keys = ['clue_id', 'clue_location', 'answer', 'order_number', 
+            keys = ['clue_id', 'clue_location', 'answer', 'order_num', 
                     'value', 'was_daily_double', 'wager',
                     'correct_response', 'responders', 'was_triple_stumper']
             clue_dict = {k: np.nan for k in keys}
@@ -186,7 +198,7 @@ def parse_fj(page_soup):
     df['correct_response'] = correct_response
     df['round_num'] = 3
     df['was_daily_double'] = False
-    df['order_number'] = 1
+    df['order_num'] = 1
     df['was_correct'] = df['name'].isin(correct_responders)
     df['was_triple_stumper'] = True if len(correct_responders) == 0 else False
     df['value'] = None
@@ -208,22 +220,25 @@ def scrape_episode(scraper, episode_num):
     rounds_df = pd.json_normalize(
         data = rounds,
         record_path = 'responders',
-        meta=['clue_id', 'clue_location', 'answer', 'order_number', 'value',
+        meta=['clue_id', 'clue_location', 'answer', 'order_num', 'value',
               'was_daily_double', 'correct_response', 'category', 'round_num', 
               'was_triple_stumper', 'wager', 'was_revealed']
     )
 
     final_jep_df = parse_fj(soup)
+    meta = parse_metadata(soup)
     episode_df = pd.concat([rounds_df, final_jep_df], ignore_index=True)
 
-    episode_df['episode'] = episode_num
+    episode_df['game_id'] = episode_num
+    episode_df['date'] = meta['date']
+    episode_df['show_num'] = meta['show_num']
 
-    col_order = ['episode', 'clue_id', 'clue_location', 'round_num', 'value',
-                'order_number', 'category','answer', 'correct_response', 'name', 
+    col_order = ['show_num', 'game_id', 'date', 'clue_id', 'clue_location', 'round_num', 'value',
+                'order_num', 'category','answer', 'correct_response', 'name', 
                 'was_correct', 'was_revealed', 'was_triple_stumper', 
                 'was_daily_double', 'wager']
     episode_df = episode_df[col_order]
-    episode_df.sort_values(by=['round_num', 'order_number'], inplace=True)
+    episode_df.sort_values(by=['round_num', 'order_num'], inplace=True)
 
     return episode_df
 
