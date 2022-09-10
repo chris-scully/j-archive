@@ -70,9 +70,9 @@ def parse_value(clue_html):
         value = None
         is_dd = True
         wager = dd_value.text \
-                                     .replace('DD: ', '') \
-                                     .replace('$', '')    \
-                                     .replace(',', '')
+                        .replace('DD: ', '') \
+                        .replace('$', '')    \
+                        .replace(',', '')
     else:
         value = value.text.replace('$', '').replace(',', '')
         is_dd = False
@@ -93,14 +93,10 @@ def parse_clues(board_html):
             response_dict = parse_response(clue_html)
 
             clue_id = clue_html.a['href'].split('=')[-1]
-            # clue_location = clue_html.find("td", {"class": "clue_unstuck"})['id'] \
-            #                           .replace('clue_', '') \
-            #                           .replace('_stuck', '')
             answer = clue_html.select_one('.clue_text').text
             order_number = clue_html.select_one('.clue_order_number').text
 
             clue_dict = {'clue_id': clue_id,
-                        #  'clue_location': clue_location,
                          'answer': answer,
                          'order_number': order_number,
                          'was_revealed': True}
@@ -134,7 +130,6 @@ def infer_clue_location(df):
     return df
 
 def infer_missing_value(df):
-    # TODO: update for pre-doubled money
     df['value'] = np.where(df['value'].isnull(), 
                            df['round_num'] * df['clue_location'].str[-1].astype(int) * 200, 
                            df['value']
