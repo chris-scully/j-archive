@@ -3,6 +3,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import json
 from datetime import datetime, date
+from difflib import get_close_matches
 
 HTML_PARSER = 'html.parser'
 ROBOTS_TXT_URL = 'http://www.j-archive.com/robots.txt'
@@ -17,16 +18,29 @@ def parse_metadata(page_html):
     show_num = game_title.split('#')[1].split(' ')[0]
 
     contestants = page_html.select('.contestants')
-    contestants_list = []
+    contestants_dict = {}
     for contestant in contestants:
         full_name = contestant.text.split(',')[0]
         player_id = contestant.a['href'].split('=')[1]
-        contestants_list.append({'full_name': full_name, 
-                                'player_id': player_id})
+        contestants_dict[full_name] = player_id
 
     return {'date': episode_date,
             'show_num': show_num,
-            'contestants': contestants_list}
+            'contestants': contestants_dict}
+
+def name_to_full_name_map(contestant_short_names, contestants_full_names_and_ids):
+    name_map = {}
+    id_map = {}
+    contestants_full_names = list(contestants_full_names_and_ids.keys())
+    for short_name in contestant_short_names:
+        name_map[short_name] = get_close_matches(short_name, 
+                                                     possibilities=contestants_full_names, 
+                                                     n=1, 
+                                                     cutoff=0.01
+                                                    )[0]
+        id_map[short_name] = contestants_full_names_and_ids[name_map[short_name]]
+
+    return name_map, id_map
 
 
 def category_name(board_html):
@@ -248,10 +262,17 @@ def scrape_episode(scraper, episode_num):
     episode_df['date'] = episode_date
     episode_df['show_num'] = show_num
 
-    col_order = ['show_num', 'game_id', 'date', 'clue_id', 'clue_location', 'round_num', 'value',
-                'order_num', 'category','answer', 'correct_response', 'name', 
-                'was_correct', 'was_revealed', 'was_triple_stumper', 
-                'was_daily_double', 'wager']
+    contestants_short_names = episode_df[~episode_df['name'].isnull()]['name'].unique()
+    name_map, id_map = name_to_full_name_map(contestants_short_names, contestants)
+    episode_df['player_id'] = episode_df['name'].replace(id_map)
+    episode_df['name'].replace(name_map, inplace=True)
+    
+
+    col_order = ['show_num', 'game_id', 'date', 'clue_id', 'clue_location', 
+                'round_num', 'value', 'order_num', 'category','answer', 
+                'correct_response', 'name', 'player_id', 'was_correct', 
+                'was_revealed', 'was_triple_stumper', 'was_daily_double', 
+                'wager']
     episode_df = episode_df[col_order]
     episode_df.sort_values(by=['round_num', 'order_num'], inplace=True)
 
