@@ -16,8 +16,17 @@ def parse_metadata(page_html):
 
     show_num = game_title.split('#')[1].split(' ')[0]
 
+    contestants = page_html.select('.contestants')
+    contestants_list = []
+    for contestant in contestants:
+        full_name = contestant.text.split(',')[0]
+        player_id = contestant.a['href'].split('=')[1]
+        contestants_list.append({'full_name': full_name, 
+                                'player_id': player_id})
+
     return {'date': episode_date,
-            'show_num': show_num}
+            'show_num': show_num,
+            'contestants': contestants_list}
 
 
 def category_name(board_html):
@@ -219,6 +228,7 @@ def scrape_episode(scraper, episode_num):
     meta = parse_metadata(soup)
     episode_date = meta['date']
     show_num = meta['show_num']
+    contestants = meta['contestants']
 
     rounds_df = parse_rounds(soup, episode_date)
     rounds = rounds_df.to_json(orient='records')
