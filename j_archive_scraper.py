@@ -9,7 +9,20 @@ HTML_PARSER = 'html.parser'
 ROBOTS_TXT_URL = 'http://www.j-archive.com/robots.txt'
 EPISODE_BASE_URL = 'http://www.j-archive.com/showgame.php?game_id='
 
-def parse_metadata(page_html):
+def parse_metadata(page_html: BeautifulSoup) -> dict:
+    """
+    Parses the metadata about a particular game
+    i.e. date, show number, contestants' names/ids
+
+    Args:
+        page_html (BeautifulSoup HTML object): the soup created by scraping
+            one Jeopardy game
+
+    Returns:
+        (dict): containing episode date (date), show number (str), and 
+            contestants' named and ids (dict)
+    """
+
     game_title = page_html.select_one('#game_title').text
 
     long_date = game_title[game_title.find(',')+2:]
@@ -28,11 +41,26 @@ def parse_metadata(page_html):
             'show_num': show_num,
             'contestants': contestants_dict}
 
-def name_to_full_name_map(contestant_short_names, contestants_full_names_and_ids):
+def name_to_full_name_map(contestant_first_names: list, 
+                          contestants_full_names_and_ids: dict) -> (dict, dict):
+    """
+    Maps first names returned by parsing the rounds to the full name found in
+    the game metadata.
+
+    Args:
+        contestant_first_names (list): the first names found in the game
+        contestants_full_names_and_ids (dict): the {full_name : id} parsed
+            in the game metadata in parse_metadata()
+
+    Returns:
+        name_map (dict): first name to full name mapping
+        id_map (dict): first name to id mapping
+    """
+
     name_map = {}
     id_map = {}
     contestants_full_names = list(contestants_full_names_and_ids.keys())
-    for short_name in contestant_short_names:
+    for short_name in contestant_first_names:
         name_map[short_name] = get_close_matches(short_name, 
                                                      possibilities=contestants_full_names, 
                                                      n=1, 
@@ -43,7 +71,17 @@ def name_to_full_name_map(contestant_short_names, contestants_full_names_and_ids
     return name_map, id_map
 
 
-def category_name(board_html):
+def parse_category_name(board_html: BeautifulSoup) -> list:
+    """
+    Parses category names from a round board
+
+    Args:
+        board_html (BeautifulSoup): the soup from one round
+
+    Returns:
+        cats (list): a list of round categories
+    """
+
     category_names_html = board_html.select('.category_name')
     cats = []
     for category_name_html in category_names_html:
@@ -53,7 +91,20 @@ def category_name(board_html):
     return cats
 
 
-def parse_response(clue_html):
+def parse_response(clue_html: BeautifulSoup) -> dict:
+    """
+    Parses the correct responders, responders (with name and whether correct),
+    and whether the clue was a triple stumper.
+
+    Args:
+        clue_html (BeautifulSoup): the soup from one clue
+
+    Returns:
+        response (dict): containing correct_response (str), 
+            responders (list containing name of responder and boolean correct),
+            and was_triple_stumper (bool)
+    """
+
     response_html = clue_html.find('div', {'onmouseover': True})['onmouseover']
     response_soup = BeautifulSoup(response_html, HTML_PARSER)
 
@@ -97,7 +148,19 @@ def parse_response(clue_html):
     return response
 
 
-def parse_value(clue_html):
+def parse_value(clue_html: BeautifulSoup) -> dict:
+    """
+    Parses the clue values of non-Daily Double clues
+
+    Args:
+        clue_html (BeautifulSoup): the soup from one clue
+
+    Returns:
+        (dict): value (str) of the clue's value, was_daily_double (bool) 
+            indicating whether the clue was a daily double, and wager (str) for 
+            daily doubles only
+    """
+
     value = clue_html.select_one('.clue_value')
     dd_value = clue_html.select_one('.clue_value_daily_double')
 
@@ -118,7 +181,21 @@ def parse_value(clue_html):
             'wager': wager}
 
 
-def parse_clues(board_html):
+def parse_clues(board_html: BeautifulSoup) -> pd.DataFrame:
+    """
+    Parses all information from all clues and also applies the parse_value() and 
+    parse_value() functions. Converts from dictionaries to a dataframe.
+
+    Args:
+        board_html (BeautifulSoup): the soup from one round
+
+    Returns:
+        (pd.DataFrame): a dataframe containing the following clue fields:
+            'clue_id', 'clue_location', 'answer', 'order_num', 'value',
+            'was_daily_double', 'wager', 'correct_response', 'responders',
+            'was_triple_stumper', 'responders', 'was_revealed'
+    """
+
     clues_html = board_html.select('.clue')
 
     clue_dicts = []
@@ -149,7 +226,18 @@ def parse_clues(board_html):
 
     return pd.DataFrame(clue_dicts)
 
-def infer_clue_location(df):
+def infer_clue_location(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    For clues where the board location is ambiguous in the HTML soup, this 
+    function infers the location based on the order of clues.
+
+    Args:
+        df (pd.DataFrame): a dataframe of round data
+
+    Returns:
+        df (pd.DataFrame): a dataframe of round data with clue_location added
+    """
+
     clue_locations = \
     ['J_1_1','J_2_1','J_3_1','J_4_1','J_5_1','J_6_1',
      'J_1_2','J_2_2','J_3_2','J_4_2','J_5_2','J_6_2',
@@ -164,7 +252,19 @@ def infer_clue_location(df):
                                   )
     return df
 
-def infer_missing_value(df, dt):
+def infer_missing_value(df: pd.DataFrame, dt: date) -> pd.DataFrame:
+    """
+    For clues where the clue value is ambiguous in the HTML soup (such as with
+    daily doubles), this function infers the value based on the clue location.
+
+    Args:
+        df (pd.DataFrame): a dataframe of round data
+        dt (date): the game date (from parse_metadata())
+
+    Returns:
+        df (pd.DataFrame): a dataframe of round data with missing 'value' inferred
+    """
+
     money_multiple = 200 if dt >= date(2001, 11, 26) else 100
     df['value'].fillna(value = df['round_num'] \
                                 * df['clue_location'].str[-1].astype(int) \
@@ -173,12 +273,24 @@ def infer_missing_value(df, dt):
                       )
     return df
 
-def parse_rounds(page_soup, episode_date):
+def parse_rounds(page_soup: BeautifulSoup, episode_date: date) -> pd.DataFrame:
+    """
+    Parses over all rounds in the game. Calls parse_clues() and
+    parse_category_name().
+
+    Args:
+        page_soup (BeautifulSoup): the full page of soup from one game
+        episode_date (date): the game date (from parse_metadata()) 
+
+    Returns:
+        (pd.DataFrame): a dataframe of round data
+    """
+
     boards = page_soup.select('.round')
 
     clue_dfs = []
     for round_num, board in enumerate(boards):
-        categories = category_name(board)
+        categories = parse_category_name(board)
         clue_df = parse_clues(board)
         clue_df['category'] = categories * 5
         clue_df['round_num'] = round_num + 1
@@ -189,7 +301,17 @@ def parse_rounds(page_soup, episode_date):
     return pd.concat(clue_dfs)
 
 
-def parse_fj(page_soup):
+def parse_fj(page_soup: BeautifulSoup) -> pd.DataFrame:
+    """
+    A parser for Final Jeopardy.
+
+    Args:
+        page_soup (BeautifulSoup): the full page of soup from one game
+
+    Returns:
+        pd.DataFrame: a dataframe of Final Jeopardy data
+    """
+
     fj_board = page_soup.select_one('.final_round')
     category = fj_board.select_one('.category_name').text
 
@@ -233,7 +355,19 @@ def parse_fj(page_soup):
     return df
 
 
-def scrape_episode(scraper, episode_num):
+def scrape_episode(scraper, episode_num: int) -> pd.DataFrame:
+    """
+    The scraper that scrapes and parses over the entire episode.
+
+    Args:
+        scraper (Scraper): a class to store the j-archive scraper
+        episode_num (int): the episode number defined by j-archive,  which will
+            determine which episode to scrape and parse
+
+    Returns:
+        pd.DataFrame: the complete game DataFrame
+    """
+
     episode_url = EPISODE_BASE_URL + str(episode_num)
     page_html = scraper.get_page(episode_url)
 
@@ -245,6 +379,7 @@ def scrape_episode(scraper, episode_num):
     contestants = meta['contestants']
 
     rounds_df = parse_rounds(soup, episode_date)
+    # A shortcut to put the data in the format I want
     rounds = rounds_df.to_json(orient='records')
     rounds = json.loads(rounds)
     rounds_df = pd.json_normalize(
