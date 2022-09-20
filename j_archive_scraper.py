@@ -9,15 +9,14 @@ HTML_PARSER = 'html.parser'
 ROBOTS_TXT_URL = 'http://www.j-archive.com/robots.txt'
 EPISODE_BASE_URL = 'http://www.j-archive.com/showgame.php?game_id='
 
-def name_to_full_name_map(contestant_first_names: list, 
-                          contestants_full_names_and_ids: dict) -> (dict, dict):
+def name_to_full_name_map(first_names: list, full_names_and_ids: dict) -> (dict, dict):
     """
     Maps first names returned by parsing the rounds to the full name found in
     the game metadata.
 
     Args:
-        contestant_first_names (list): the first names found in the game
-        contestants_full_names_and_ids (dict): the {full_name : id} parsed
+        first_names (list): the first names found in the game
+        full_names_and_ids (dict): the {full_name : id} parsed
             in the game metadata in parse_metadata()
 
     Returns:
@@ -27,14 +26,14 @@ def name_to_full_name_map(contestant_first_names: list,
 
     name_map = {}
     id_map = {}
-    contestants_full_names = list(contestants_full_names_and_ids.keys())
-    for short_name in contestant_first_names:
-        name_map[short_name] = get_close_matches(short_name, 
+    contestants_full_names = list(full_names_and_ids.keys())
+    for first_name in first_names:
+        name_map[first_name] = get_close_matches(first_name, 
                                                      possibilities=contestants_full_names, 
                                                      n=1, 
                                                      cutoff=0.01
-                                                    )[0]
-        id_map[short_name] = contestants_full_names_and_ids[name_map[short_name]]
+                                                )[0]
+        id_map[first_name] = full_names_and_ids[name_map[first_name]]
 
     return name_map, id_map
 
