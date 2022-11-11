@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import json
 from scraper.scraper_config import ScraperConfig
 from scraper.parsers import parse_metadata, parse_rounds, parse_fj
-from scraper.parser_utils import name_to_full_name_map
+from scraper.parser_utils import name_to_full_name_map, col_order_and_dtypes
 
 def scrape_episode(scraper: ScraperConfig \
                     , episode_num: int \
@@ -57,13 +57,8 @@ def scrape_episode(scraper: ScraperConfig \
     episode_df['player_id'] = episode_df['name'].replace(id_map)
     episode_df['name'].replace(name_map, inplace=True)
     
-
-    col_order = ['show_num', 'game_id', 'date', 'clue_id', 'clue_location', 
-                'round_num', 'value', 'order_num', 'category','answer', 
-                'correct_response', 'name', 'player_id', 'was_correct', 
-                'was_revealed', 'was_triple_stumper', 'was_daily_double', 
-                'wager']
-    episode_df = episode_df[col_order]
+    episode_df = episode_df[col_order_and_dtypes.keys()]
+    episode_df = episode_df.astype(col_order_and_dtypes)
     episode_df.sort_values(by=['round_num', 'order_num'], inplace=True)
 
     return episode_df

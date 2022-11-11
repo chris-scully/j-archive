@@ -79,3 +79,24 @@ def infer_missing_value(df: pd.DataFrame, dt: date) -> pd.DataFrame:
                        inplace=True
                       )
     return df
+
+col_order_and_dtypes = {
+    'show_num': 'float', 
+    'game_id': 'float', 
+    'date': 'datetime64[ns]', 
+    'clue_id': 'float', 
+    'clue_location': 'str', 
+    'round_num': 'float', 
+    'value': 'float', 
+    'order_num': 'float', 
+    'category': 'str',
+    'answer': 'str', 
+    'correct_response': 'str', 
+    'name': 'str', 
+    'player_id': 'float', 
+    'was_correct': 'bool', 
+    'was_revealed': 'bool', 
+    'was_triple_stumper': 'bool', 
+    'was_daily_double': 'bool', 
+    'wager': 'float'
+}
