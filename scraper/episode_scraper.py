@@ -2,11 +2,11 @@ import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 import json
-from scraper.scraper_config import ScraperConfig
-from scraper.parsers import parse_metadata, parse_rounds, parse_fj
-from scraper.parser_utils import name_to_full_name_map, col_order_and_dtypes
+from scraper.utils.scraper import Scraper
+from scraper.utils.parsers import parse_metadata, parse_rounds, parse_fj, \
+                                  name_to_full_name_map, col_order_and_dtypes
 
-def scrape_episode(scraper: ScraperConfig \
+def scrape_episode(scraper: Scraper \
                     , episode_num: int \
                     , html_parser: str \
                     , episode_base_url: str) -> pd.DataFrame:
@@ -14,7 +14,7 @@ def scrape_episode(scraper: ScraperConfig \
     The scraper that scrapes and parses over the entire episode.
 
     Args:
-        scraper (ScraperConfig): a class to store the j-archive scraper
+        scraper (Scraper): a class to store the j-archive scraper
         episode_base_url (str): the standard URL format from j-archive
         episode_num (int): the episode number defined by j-archive,  which will
             determine which episode to scrape and parse

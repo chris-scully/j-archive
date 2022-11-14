@@ -1,7 +1,7 @@
 if __name__ == '__main__':
     import os
     import sys
-    from scraper.scraper_config import ScraperConfig
+    from scraper.utils.scraper import Scraper
     from scraper.episode_scraper import scrape_episode
     from database.db_utils import df_to_db, table_schema
     from database.db_conf import db_conf
@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     project_id = db_conf['project-id']
 
-    j_scraper = ScraperConfig(robots_txt_url=ROBOTS_TXT_URL)
+    j_scraper = Scraper(robots_txt_url=ROBOTS_TXT_URL)
     for i in range(start_ep_num, end_ep_num+1):
         print(f'Scraping/parsing episode #{i}')
         episode_df = scrape_episode(j_scraper, i, HTML_PARSER, EPISODE_BASE_URL)

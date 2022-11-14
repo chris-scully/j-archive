@@ -8,7 +8,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 
-class ScraperConfig:
+class Scraper:
     def __init__(self, robots_txt_url, n_tries=3):
         self.n_tries = n_tries
 
