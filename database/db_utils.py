@@ -1,8 +1,8 @@
 import pandas_gbq
 
-table_schema = [
-    {'name': 'show_num', 'type': 'INTEGER'}, 
+game_table_schema = [
     {'name': 'game_id', 'type': 'INTEGER'},
+    {'name': 'show_num', 'type': 'INTEGER'}, 
     {'name': 'date', 'type': 'DATE'},
     {'name': 'clue_id', 'type': 'INTEGER'},
     {'name': 'clue_location', 'type': 'STRING'},
@@ -21,7 +21,7 @@ table_schema = [
     {'name': 'wager', 'type': 'INTEGER'}
 ]
 
-def df_to_db(df, project_id, dataset, table_name, table_schema):
+def df_to_db(df, project_id, dataset, table_name, table_schema, if_exists):
     """
     Pushes a DataFrame to a database. By default uses BigQuery, but modifyable
     to fit database of choice.
@@ -32,6 +32,7 @@ def df_to_db(df, project_id, dataset, table_name, table_schema):
         dataset (str): the DB schema within the project
         table_name (str): the name of the table when saved to the DB
         table_schema (dict): [{'name': 'col1', 'type': 'STRING'},...]
+        if_exists: replace, append, or fail
 
     Returns:
         None
@@ -39,7 +40,7 @@ def df_to_db(df, project_id, dataset, table_name, table_schema):
     pandas_gbq.to_gbq(dataframe=df, 
                       destination_table=dataset + '.' + table_name, 
                       project_id=project_id, 
-                      if_exists='replace', 
+                      if_exists=if_exists, 
                       table_schema=table_schema,
                       progress_bar=False)
 

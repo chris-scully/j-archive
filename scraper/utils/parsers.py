@@ -358,8 +358,8 @@ def name_to_full_name_map(first_names: list, full_names_and_ids: dict) -> (dict,
     return name_map, id_map
 
 col_order_and_dtypes = {
-    'show_num': 'float', 
     'game_id': 'float', 
+    'show_num': 'float', 
     'date': 'datetime64[ns]', 
     'clue_id': 'float', 
     'clue_location': 'str', 
