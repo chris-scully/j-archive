@@ -32,6 +32,7 @@ def scrape_episode(scraper: Scraper \
     episode_date = meta['date']
     show_num = meta['show_num']
     contestants = meta['contestants']
+    game_notes = meta['game_notes']
 
     rounds_df = parse_rounds(soup, episode_date, html_parser)
     # A shortcut to put the data in the format I want
@@ -51,6 +52,7 @@ def scrape_episode(scraper: Scraper \
     episode_df['game_id'] = episode_num
     episode_df['date'] = episode_date
     episode_df['show_num'] = show_num
+    episode_df['game_notes'] = game_notes
 
     contestants_short_names = episode_df[~episode_df['name'].isnull()]['name'].unique()
     name_map, id_map = name_to_full_name_map(contestants_short_names, contestants)

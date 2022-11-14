@@ -33,9 +33,12 @@ def parse_metadata(page_html: BeautifulSoup) -> dict:
         player_id = contestant.a['href'].split('=')[1]
         contestants_dict[full_name] = player_id
 
+    game_notes = page_html.select_one('#game_comments').text
+
     return {'date': episode_date,
             'show_num': show_num,
-            'contestants': contestants_dict}
+            'contestants': contestants_dict,
+            'game_notes': game_notes}
 
 
 def parse_category_name(board_html: BeautifulSoup) -> list:
@@ -361,6 +364,7 @@ col_order_and_dtypes = {
     'game_id': 'float', 
     'show_num': 'float', 
     'date': 'datetime64[ns]', 
+    'game_notes': 'str',
     'clue_id': 'float', 
     'clue_location': 'str', 
     'round_num': 'float', 

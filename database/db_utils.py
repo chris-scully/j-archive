@@ -4,6 +4,7 @@ game_table_schema = [
     {'name': 'game_id', 'type': 'INTEGER'},
     {'name': 'show_num', 'type': 'INTEGER'}, 
     {'name': 'date', 'type': 'DATE'},
+    {'name': 'game_notes', 'type': 'STRING'},
     {'name': 'clue_id', 'type': 'INTEGER'},
     {'name': 'clue_location', 'type': 'STRING'},
     {'name': 'round_num', 'type': 'INTEGER'},
