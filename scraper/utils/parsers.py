@@ -3,7 +3,61 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from datetime import datetime, date
 from difflib import get_close_matches
+import re
 
+
+def parse_tournament(game_notes: str) -> dict:
+    """
+    Extracts tournament information from game_notes
+
+    Args:
+        game_notes (str): the raw game_comments from J-Archive
+
+    Returns:
+        tuple, containing:
+        - was_tournament: boolean indicating whether game was part of a tournament
+        - tournament_name: the name of the tournament
+    """
+
+    game_notes = game_notes.upper()
+    game_notes = re.sub(r'\W+', ' ', game_notes) # replaces symbols 
+
+    year = re.search(r'(\d{4})', game_notes) # searches for 4-digit number
+    year = year.group(1)+' ' if year else ''
+
+    tournaments_list = ['ULTIMATE TOURNAMENT OF CHAMPIONS',
+                       'TOURNAMENT OF CHAMPIONS',
+                       'GREATEST OF ALL TIME',
+                       'TEACHERS TOURNAMENT',
+                       'COLLEGE CHAMPIONSHIP',
+                       'TEEN REUNION TOURNAMENT',
+                       'TEEN TOURNAMENT',
+                       'KIDS WEEK REUNION',
+                       'KIDS WEEK',
+                       'SENIORS TOURNAMENT',
+                       'SENIOR TOURNAMENT'
+                       'BATTLE OF THE DECADES',
+                       'MILLION DOLLAR MASTERS',
+                       'SUPER JEOPARDY',
+                       'SECOND CHANCE',
+                       'ALLSTAR GAMES',
+                       'CELEBRITY JEOPARDY',
+                       'POWER PLAYERS WEEK',
+                       'MILLION DOLLAR CELEBRITY INVITATIONAL',
+                       'THE IBM CHALLENGE',
+                       'BACK TO SCHOOL WEEK',
+                       'INTERNATIONAL CHAMPIONSHIP',
+                       'INTERNATIONAL TOURNAMENT',
+                       'ARMED FORCES WEEK',
+                       'OLYMPIC GAMES',
+                       '10TH ANNIVERSARY TOURNAMENT'
+                      ]
+    match = next((tournament for tournament in tournaments_list if tournament in game_notes), None)
+    tournament_name = year + match if match else None
+
+    was_tournament = bool(tournament_name)
+
+    return (was_tournament, tournament_name)
 
 def parse_metadata(page_html: BeautifulSoup) -> dict:
     """
@@ -35,9 +89,13 @@ def parse_metadata(page_html: BeautifulSoup) -> dict:
 
     game_notes = page_html.select_one('#game_comments').text
 
+    was_tournament, tournament_name = parse_tournament(game_notes)
+
     return {'date': episode_date,
             'show_num': show_num,
             'contestants': contestants_dict,
+            'was_tournament': was_tournament, 
+            'tournament_name': tournament_name,
             'game_notes': game_notes}
 
 
@@ -363,8 +421,9 @@ def name_to_full_name_map(first_names: list, full_names_and_ids: dict) -> (dict,
 col_order_and_dtypes = {
     'game_id': 'float', 
     'show_num': 'float', 
-    'date': 'datetime64[ns]', 
-    'game_notes': 'str',
+    'date': 'datetime64[ns]',
+    'was_tournament': 'bool',
+    'tournament_name': 'str',
     'clue_id': 'float', 
     'clue_location': 'str', 
     'round_num': 'float', 
@@ -379,6 +438,7 @@ col_order_and_dtypes = {
     'was_revealed': 'bool', 
     'was_triple_stumper': 'bool', 
     'was_daily_double': 'bool', 
-    'wager': 'float'
+    'wager': 'float',
+    'game_notes': 'str'
 }
     

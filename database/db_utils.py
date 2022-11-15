@@ -4,7 +4,8 @@ game_table_schema = [
     {'name': 'game_id', 'type': 'INTEGER'},
     {'name': 'show_num', 'type': 'INTEGER'}, 
     {'name': 'date', 'type': 'DATE'},
-    {'name': 'game_notes', 'type': 'STRING'},
+    {'name': 'was_tournament', 'type': 'BOOLEAN'},
+    {'name': 'tournament_name', 'type': 'STRING'},
     {'name': 'clue_id', 'type': 'INTEGER'},
     {'name': 'clue_location', 'type': 'STRING'},
     {'name': 'round_num', 'type': 'INTEGER'},
@@ -19,7 +20,8 @@ game_table_schema = [
     {'name': 'was_revealed', 'type': 'BOOLEAN'},
     {'name': 'was_triple_stumper', 'type': 'BOOLEAN'},
     {'name': 'was_daily_double', 'type': 'BOOLEAN'},
-    {'name': 'wager', 'type': 'INTEGER'}
+    {'name': 'wager', 'type': 'INTEGER'},
+    {'name': 'game_notes', 'type': 'STRING'}
 ]
 
 def df_to_db(df, project_id, dataset, table_name, table_schema, if_exists):

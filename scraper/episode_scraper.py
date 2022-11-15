@@ -31,6 +31,8 @@ def scrape_episode(scraper: Scraper \
     meta = parse_metadata(soup)
     episode_date = meta['date']
     show_num = meta['show_num']
+    was_tournament = meta['was_tournament']
+    tournament_name = meta['tournament_name']
     contestants = meta['contestants']
     game_notes = meta['game_notes']
 
@@ -52,6 +54,8 @@ def scrape_episode(scraper: Scraper \
     episode_df['game_id'] = episode_num
     episode_df['date'] = episode_date
     episode_df['show_num'] = show_num
+    episode_df['was_tournament'] = was_tournament
+    episode_df['tournament_name'] = tournament_name
     episode_df['game_notes'] = game_notes
 
     contestants_short_names = episode_df[~episode_df['name'].isnull()]['name'].unique()
