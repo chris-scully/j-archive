@@ -22,8 +22,8 @@ if __name__ == '__main__':
         episode_df = scrape_episode(j_scraper, episode_num, HTML_PARSER, EPISODE_BASE_URL)
         df_to_db(df=episode_df, 
                  project_id=project_id, 
-                 dataset='dev_game_data', 
-                 table_name='game_data', 
+                 dataset='dev_question_data', 
+                 table_name='question_data', 
                  table_schema=game_table_schema, 
                  if_exists=if_exists
                 )
