@@ -1,3 +1,6 @@
 # Data
 data/episode/
 database/db_conf.py
+
+# Log
+log
